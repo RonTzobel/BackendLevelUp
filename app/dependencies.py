@@ -8,6 +8,7 @@ from jwt import InvalidTokenError
 from pydantic import EmailStr
 
 from sqlalchemy import Engine
+from sqlmodel import Session
 from starlette import status
 from starlette.requests import HTTPConnection
 
@@ -21,6 +22,12 @@ async def get_engine(request: HTTPConnection) -> Engine:
 
 ActiveEngine = Annotated[Engine, Depends(get_engine)]
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+
+def get_session(engine: ActiveEngine) -> Session:
+    """Yield a DB session bound to the request engine."""
+    with Session(engine) as session:
+        yield session
 
 async def get_current_user(engine: ActiveEngine, token: Annotated[EmailStr, Depends(oauth2_scheme)]) -> User:
     credentials_exception = HTTPException(
