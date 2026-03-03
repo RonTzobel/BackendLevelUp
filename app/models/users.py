@@ -28,6 +28,8 @@ class UserBase(SQLModel):
     status: UserStatus = Field(default=UserStatus.INACTIVE)
     purchase:int = Field(default=0)
     joined: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    favorite_genre: Optional[str] = Field(default=None, max_length=255)
+    preferred_store: Optional[str] = Field(default=None, max_length=255)
 
 class User(UserBase, table=True):
     __tablename__ = "users"
@@ -47,6 +49,10 @@ class UserResponse(BaseModel):
     google_id: Optional[str] = None
     role: UserRole
     status: UserStatus
+    purchase: int | None = None
+    joined: datetime.datetime | None = None
+    favorite_genre: Optional[str] = None
+    preferred_store: Optional[str] = None
 
 class PreferencesUpdate(BaseModel):
     """Model for updating user preferences"""

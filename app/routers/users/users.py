@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, status, Path, HTTPException
@@ -28,7 +29,11 @@ async def register(engine: ActiveEngine, user_data: UserRegister) -> UserRespons
         name=new_user.name,
         google_id=new_user.google_id,
         role=new_user.role,
-        status=new_user.status
+        status=new_user.status,
+        purchase=new_user.purchase,
+        joined=new_user.joined,
+        favorite_genre=getattr(new_user, "favorite_genre", None),
+        preferred_store=getattr(new_user, "preferred_store", None),
     )
 
 
@@ -40,35 +45,6 @@ async def get_users(engine: ActiveEngine):
 @router.delete('/{email}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(engine: ActiveEngine, email: EmailStr):
     delete_user_by_email(engine, email)
-
-
-@router.put('/{email}', status_code=status.HTTP_202_ACCEPTED)
-async def edit_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], user: UserBase):
-    update_user(
-        engine=engine,
-        edit_user=user,
-        email=email
-    )
-
-@router.get('/me', status_code=status.HTTP_200_OK)
-async def get_me(current_user: Annotated[User, Depends(get_current_active_user)]):
-    return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        name=current_user.name,
-        google_id=current_user.google_id,
-        role=current_user.role,
-        status=current_user.status
-    )
-
-
-@router.put('/{email}/logout', status_code=status.HTTP_202_ACCEPTED)
-async def logout_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], disable: UserStatus):
-    update_user_status(
-        engine=engine,
-        email=email,
-        disable=disable
-    )
 
 
 @router.put("/preferences", status_code=status.HTTP_200_OK)
@@ -95,3 +71,39 @@ async def update_preferences(
             "favoriteGenre": user.favorite_genre,
             "preferredStore": user.preferred_store
         }
+
+
+@router.put('/by-email/{email}', status_code=status.HTTP_202_ACCEPTED)
+async def edit_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], user: UserBase):
+    if user.email is not None and user.email != email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Changing email is not allowed")
+    update_user(
+        engine=engine,
+        edit_user=user,
+        email=email
+    )
+
+@router.get('/me', status_code=status.HTTP_200_OK)
+async def get_me(current_user: Annotated[User, Depends(get_current_active_user)]):
+    joined = current_user.joined or datetime.datetime.now()
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        google_id=current_user.google_id,
+        role=current_user.role,
+        status=current_user.status,
+        purchase=current_user.purchase,
+        joined=joined,
+        favorite_genre=getattr(current_user, "favorite_genre", None),
+        preferred_store=getattr(current_user, "preferred_store", None),
+    )
+
+
+@router.put('/{email}/logout', status_code=status.HTTP_202_ACCEPTED)
+async def logout_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], disable: UserStatus):
+    update_user_status(
+        engine=engine,
+        email=email,
+        disable=disable
+    )

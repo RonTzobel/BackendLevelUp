@@ -15,7 +15,10 @@ from app.routers.admin.topdeals import router as admin_topdeals_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    engine = create_engine(postgresql_url, echo=True)
+    connect_args = {}
+    if postgresql_url.startswith("sqlite"):
+        connect_args = {"check_same_thread": False}
+    engine = create_engine(postgresql_url, echo=True, connect_args=connect_args)
     create_db_and_tables(engine)
     yield {"engine": engine}
     engine.dispose()

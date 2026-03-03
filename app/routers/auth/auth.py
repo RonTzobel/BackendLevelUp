@@ -100,3 +100,14 @@ async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequest
 @router.post("/google/me", response_model=User)
 async def get_google_user(engine: ActiveEngine, data: TokenRequest):
     return get_google_current_user(engine, data)
+
+
+@router.post("/google/token", response_model=Token)
+async def google_exchange_token(engine: ActiveEngine, data: TokenRequest):
+    """Exchange a valid Google ID token for our JWT. Used so Google users can call PUT /users/preferences."""
+    user = get_google_current_user(engine, data)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=timedelta(minutes=float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]))
+    )
+    return Token(access_token=access_token, token_type="bearer")
