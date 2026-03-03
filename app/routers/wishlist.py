@@ -27,19 +27,7 @@ async def add_to_wishlist(
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
     response: Response,
-    payload: WishlistCreate = Body(
-        ...,
-        examples={
-            "add": {
-                "summary": "Add game to wishlist",
-                "value": {
-                    "game_id": "cs_316380",
-                    "title": "Example Game",
-                    "thumb": "https://example.com/image.jpg",
-                },
-            }
-        },
-    ),
+    payload: WishlistCreate = Body(...),
 ):
     """Add a game to the current user's wishlist."""
     # Backward compatibility: allow legacy game_id field.
@@ -108,16 +96,7 @@ async def get_my_wishlist(
         .order_by(WishlistItem.created_at.desc())
     ).all()
 
-    return [
-        WishlistRead(
-            id=item.id,
-            external_game_id=item.external_game_id,
-            title=item.title,
-            thumb=item.thumb,
-            created_at=item.created_at,
-        )
-        for item in items
-    ]
+    return list(items)
 
 
 @router.delete(
@@ -137,8 +116,8 @@ async def remove_from_wishlist(
         )
     ).first()
 
+    # Check item exists, then delete.
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wishlist item not found")
-
     session.delete(item)
     session.commit()

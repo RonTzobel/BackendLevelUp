@@ -27,7 +27,6 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://frontend-level-up-delta.vercel.app",
-        "https://levelupgame.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
