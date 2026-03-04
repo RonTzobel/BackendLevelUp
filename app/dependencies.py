@@ -3,7 +3,9 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
+from pydantic import EmailStr
 
 from sqlalchemy import Engine
 from starlette import status
@@ -20,7 +22,7 @@ async def get_engine(request: HTTPConnection) -> Engine:
 ActiveEngine = Annotated[Engine, Depends(get_engine)]
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
-async def get_current_user(engine: ActiveEngine, token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+async def get_current_user(engine: ActiveEngine, token: Annotated[EmailStr, Depends(oauth2_scheme)]) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -40,7 +42,7 @@ async def get_current_user(engine: ActiveEngine, token: Annotated[str, Depends(o
         if user is None:
             raise credentials_exception
         return user
-    except JWTError:
+    except InvalidTokenError:
         raise credentials_exception
 
 async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]) -> User:
