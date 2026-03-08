@@ -12,7 +12,8 @@ import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
-from app.models.games import Game, GamePrice
+from app.models.games import GamePrice
+from app.schemas import Game
 
 # IGDB API configuration (Twitch OAuth) - set IGDB_CLIENT_ID and IGDB_CLIENT_SECRET in .env
 IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID", "")

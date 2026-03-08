@@ -6,7 +6,6 @@ from app.db import create_db_and_tables, postgresql_url
 from app.routers.auth import auth
 from app.routers.reviews import reviews
 from app.routers.users import users
-from app.routers.purchases import purchases
 from app.routers.admin.games import router as admin_games_router
 from app.routers.admin.genres import router as admin_genres_router
 from app.routers.admin.topdeals import router as admin_topdeals_router
@@ -37,7 +36,6 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(auth.router)
-app.include_router(purchases.router)
 app.include_router(admin_games_router)  
 app.include_router(admin_genres_router)  
 app.include_router(admin_topdeals_router)  

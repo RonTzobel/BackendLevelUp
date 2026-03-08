@@ -2,13 +2,12 @@ import os
 from typing import Annotated
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,Response
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.dependencies import ActiveEngine
 from app.logic.auth import (
     create_access_token,
-    get_google_current_user,
 )
 from dotenv import load_dotenv
 from google.oauth2 import id_token
@@ -33,7 +32,7 @@ load_dotenv()
 
 
 @router.post("/google")
-async def google_auth(engine: ActiveEngine, data: TokenRequest):
+async def google_auth(engine: ActiveEngine, data: TokenRequest,response:Response):
     """Login or signup with Google authentication"""
     id_info = id_token.verify_oauth2_token(
         data.token,
@@ -72,9 +71,26 @@ async def google_auth(engine: ActiveEngine, data: TokenRequest):
 
     update_user_status(engine=engine, email=user.email, disable=UserStatus.ACTIVE)
 
+    response.set_cookie(
+        key="access_token",
+        value=data.token,
+        secure=False,
+        samesite="lax",
+        path="/",
+        max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
+    )
+    response.set_cookie(
+        key="sign_action",
+        value="google",
+        secure=False,
+        samesite="lax",
+        path="/",
+        max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
+    )
+
 
 @router.post("/token", response_model=Token)
-async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequestForm, Depends()],response:Response):
     """Login and get access token."""
     user = select_user(engine, form_data)
 
@@ -93,21 +109,24 @@ async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequest
         data={"sub": user.email},
         expires_delta=timedelta(minutes=float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]))
     )
-
-    return Token(access_token=access_token, token_type="bearer")
-
-
-@router.post("/google/me", response_model=User)
-async def get_google_user(engine: ActiveEngine, data: TokenRequest):
-    return get_google_current_user(engine, data)
-
-
-@router.post("/google/token", response_model=Token)
-async def google_exchange_token(engine: ActiveEngine, data: TokenRequest):
-    """Exchange a valid Google ID token for our JWT. Used so Google users can call PUT /users/preferences."""
-    user = get_google_current_user(engine, data)
-    access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=timedelta(minutes=float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]))
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        secure=False,
+        samesite="lax",
+        path="/",
+        max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
+    )
+    response.set_cookie(
+        key="sign_action",
+        value="password",
+        secure=False,
+        samesite="lax",
+        path="/",
+        max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
     )
     return Token(access_token=access_token, token_type="bearer")
+
+
+
+
