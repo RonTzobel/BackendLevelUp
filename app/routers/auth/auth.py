@@ -74,7 +74,7 @@ async def google_auth(engine: ActiveEngine, data: TokenRequest,response:Response
     response.set_cookie(
         key="access_token",
         value=data.token,
-        secure=False,
+        secure=True,
         samesite="none",
         path="/",
         max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
@@ -82,7 +82,7 @@ async def google_auth(engine: ActiveEngine, data: TokenRequest,response:Response
     response.set_cookie(
         key="sign_action",
         value="google",
-        secure=False,
+        secure=True,
         samesite="none",
         path="/",
         max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
@@ -112,7 +112,7 @@ async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequest
     response.set_cookie(
         key="access_token",
         value=access_token,
-        secure=False,
+        secure=True,
         samesite="none",
         path="/",
         max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
@@ -120,7 +120,7 @@ async def login(engine: ActiveEngine, form_data: Annotated[OAuth2PasswordRequest
     response.set_cookie(
         key="sign_action",
         value="password",
-        secure=False,
+        secure=True,
         samesite="none",
         path="/",
         max_age=int(float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]) * 60),
