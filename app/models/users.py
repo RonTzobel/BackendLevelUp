@@ -65,7 +65,6 @@ class UserResponse(BaseModel):
     google_id: Optional[str] = None
     role: UserRole
     status: UserStatus
-    purchase: int | None = None
     joined: datetime.datetime | None = None
     favorite_genre: UserGenre
     preferred_store: UserStores
