@@ -1,14 +1,14 @@
-import asyncio
+
 from typing import Annotated
 
-from fastapi import APIRouter, status, Path, HTTPException
+from fastapi import APIRouter, status, Path, HTTPException,Response
 from fastapi.params import Depends
 from pydantic import EmailStr
 from sqlmodel import Session, select
-from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.dependencies import ActiveEngine, get_current_active_user
-from app.logic.users import create_user, select_users, delete_user_by_email, update_user, update_user_status
+from app.logic.users import create_user, select_users, delete_user_by_email, update_user, update_user_status, \
+    get_user_by_email
 from app.models.users import UserBase, UserRegister, UserResponse, User, UserStatus, PreferencesUpdate
 
 router = APIRouter(
@@ -29,10 +29,9 @@ async def register(engine: ActiveEngine, user_data: UserRegister) -> UserRespons
         google_id=new_user.google_id,
         role=new_user.role,
         status=new_user.status,
-        purchase=new_user.purchase,
         joined=new_user.joined,
-        favorite_genre=getattr(new_user, "favorite_genre", None),
-        preferred_store=getattr(new_user, "preferred_store", None),
+        favorite_genre=new_user.favorite_genre,
+        preferred_store=new_user.preferred_store
     )
 
 
@@ -46,36 +45,12 @@ async def delete_user(engine: ActiveEngine, email: EmailStr):
     delete_user_by_email(engine, email)
 
 
-@router.put("/preferences", status_code=status.HTTP_200_OK)
-async def update_preferences(
-    engine: ActiveEngine,
-    preferences_data: PreferencesUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)]
-):
-    """Update user's gaming preferences (favoriteGenre, preferredStore)."""
-    with Session(engine) as db_session:
-        statement = select(User).where(User.id == current_user.id)
-        user = db_session.exec(statement).first()
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        if preferences_data.favoriteGenre is not None:
-            user.favorite_genre = preferences_data.favoriteGenre
-        if preferences_data.preferredStore is not None:
-            user.preferred_store = preferences_data.preferredStore
-        db_session.add(user)
-        db_session.commit()
-        db_session.refresh(user)
-        return {
-            "message": "Preferences updated successfully",
-            "favoriteGenre": user.favorite_genre,
-            "preferredStore": user.preferred_store
-        }
-
-
 @router.put('/{email}', status_code=status.HTTP_202_ACCEPTED)
 async def edit_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], user: UserBase):
-    if user.email is not None and user.email != email:
+
+    if email != user.email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Changing email is not allowed")
+
     update_user(
         engine=engine,
         edit_user=user,
@@ -84,22 +59,13 @@ async def edit_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], us
 
 @router.get('/me', status_code=status.HTTP_200_OK)
 async def get_me(current_user: Annotated[User, Depends(get_current_active_user)]):
-    return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        name=current_user.name,
-        google_id=current_user.google_id,
-        role=current_user.role,
-        status=current_user.status,
-        purchase=current_user.purchase,
-        joined=current_user.joined,
-        favorite_genre=getattr(current_user, "favorite_genre", None),
-        preferred_store=getattr(current_user, "preferred_store", None),
-    )
+    return current_user
 
 
 @router.put('/{email}/logout', status_code=status.HTTP_202_ACCEPTED)
-async def logout_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], disable: UserStatus):
+async def logout_user(engine: ActiveEngine, email: Annotated[EmailStr, Path()], disable: UserStatus,response: Response):
+    response.delete_cookie("access_token")
+    response.delete_cookie("sign_action")
     update_user_status(
         engine=engine,
         email=email,

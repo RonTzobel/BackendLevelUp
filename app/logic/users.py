@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from typing import Sequence, Annotated, TYPE_CHECKING
 
 from app.models.users import User, UserBase, UserRegister, UserRole, UserStatus
-from app.utilities.passwords import get_password_hash
+from app.utilities.passwords import get_password_hash, verify_password
 
 if TYPE_CHECKING:
     from app.dependencies import ActiveEngine, get_current_user
@@ -69,9 +69,14 @@ def update_user(*, engine: Engine, edit_user: UserBase, email: EmailStr):
         user = session.exec(statement).one()
 
         user.email = email
+        user.name = edit_user.name
         user.role = edit_user.role
         user.status = edit_user.status
-        user.purchase = edit_user.purchase
+        user.favorite_genre=edit_user.favorite_genre
+        user.preferred_store = edit_user.preferred_store
+
+        if edit_user.password != user.password and not verify_password(edit_user.password, user.password):
+            user.password = get_password_hash(edit_user.password)
 
         session.add(user)
         session.commit()
@@ -179,7 +184,6 @@ def create_user_from_google(engine: Engine, email: EmailStr, name: str | None, g
             google_id=google_id,
             password=None,  # No password for OAuth users
             status=UserStatus.ACTIVE,
-            purchase=0,
             role=UserRole.USER
         )
 
