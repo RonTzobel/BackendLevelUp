@@ -37,7 +37,7 @@ class UserStores(StrEnum):
 
 class UserBase(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
-    email: EmailStr
+    email: EmailStr = Field(unique=True)
     password:str | None = Field(default=None,min_length=3, max_length=1000)
     name:str = Field(max_length=255)
     google_id: Optional[str] = Field(default=None, max_length=255)

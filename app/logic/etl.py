@@ -7,17 +7,17 @@ Note: No Load step - data is returned directly without storage
 """
 
 import httpx
-import os
 import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
+from app.config.settings import settings
 from app.models.games import GamePrice
 from app.schemas import Game
 
 # IGDB API configuration (Twitch OAuth) - set IGDB_CLIENT_ID and IGDB_CLIENT_SECRET in .env
-IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID", "")
-IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET", "")
+IGDB_CLIENT_ID = settings.IGDB_CLIENT_ID
+IGDB_CLIENT_SECRET = settings.IGDB_CLIENT_SECRET
 IGDB_OAUTH_URL = "https://id.twitch.tv/oauth2/token"
 IGDB_GAMES_URL = "https://api.igdb.com/v4/games"
 IGDB_GENRES_URL = "https://api.igdb.com/v4/genres"

@@ -117,6 +117,13 @@ def get_user_by_username(engine: Engine, name: str) -> User | None:
         return session.exec(statement).first()
 
 
+def get_user_by_id(engine: Engine, user_id: int) -> User | None:
+    """Get user by primary key"""
+    with Session(engine) as session:
+        statement = select(User).where(User.id == user_id)
+        return session.exec(statement).first()
+
+
 def get_user_by_email(engine: Engine, email: EmailStr) -> User | None:
     """Get user by email"""
     with Session(engine) as session:

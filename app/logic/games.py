@@ -3,8 +3,8 @@ from typing import Optional
 import httpx
 import asyncio
 import re
-import os
 import logging
+from app.config.settings import settings
 from app.models.games import GameResponse
 from app.logic.stores import fetch_cheapshark_stores
 
@@ -36,9 +36,7 @@ def get_game_by_id_from_dict(games_db: dict, game_id: str) -> Optional[dict]:
 
 logger = logging.getLogger(__name__)
 
-RAWG_API_KEY = os.getenv("RAWG_API_KEY", "")
-if not RAWG_API_KEY:
-    logger.warning("RAWG_API_KEY environment variable not set. RAWG API features will be disabled.")
+RAWG_API_KEY = settings.RAWG_API_KEY
 
 
 # ============== EXTRACT FUNCTIONS ==============
@@ -295,14 +293,16 @@ def calculate_discount(savings_str: str, normal_price: float, sale_price: float)
 async def transform_deal_to_game_response(deal: dict, is_trending: bool = False, is_deal_of_day: bool = False, fetch_rawg: bool = False, fetch_rawg_image: bool = False, price_comparison: Optional[list[dict]] = None) -> GameResponse:
     """Transform CheapShark deal to GameResponse format."""
     game_id = f"cs_{deal.get('gameID', '')}"
-    title = deal.get("title", "Unknown")
-    thumb = deal.get("thumb", "")
-    
-    sale_price = float(deal.get("salePrice", 0))
-    normal_price = float(deal.get("normalPrice", sale_price))
-    savings_str = deal.get("savings", "0")
+    title = deal.get("title") or "Unknown"
+    # CheapShark sometimes returns null for thumb (e.g. free giveaways).
+    # Use `or ""` so we never pass None into GameResponse.image: str.
+    thumb = deal.get("thumb") or ""
+
+    sale_price = float(deal.get("salePrice") or 0)
+    normal_price = float(deal.get("normalPrice") or sale_price)
+    savings_str = deal.get("savings") or "0"
     discount = calculate_discount(savings_str, normal_price, sale_price)
-    
+
     description = f"Experience {title} - Available now at great prices!"
     genres = ["Action"]
     image = thumb

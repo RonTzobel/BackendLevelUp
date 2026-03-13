@@ -1,11 +1,8 @@
-import os
-
 from sqlalchemy import Engine
 from sqlmodel import SQLModel
 
-postgresql_url = os.getenv(
-    "DB_URL",
-    default="postgresql://Almog:1999@127.0.0.1:5432/levelup"
-)
+from app.config.settings import settings
+
+postgresql_url = settings.DB_URL
 def create_db_and_tables(engine: Engine):
     SQLModel.metadata.create_all(engine)
