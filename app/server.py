@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import create_engine
 from app.db import create_db_and_tables, postgresql_url
+from app.seed import seed_demo_accounts
 from app.routers.auth import auth
 from app.routers.reviews import reviews
 from app.routers.users import users
@@ -17,6 +18,7 @@ from app.routers import wishlist
 async def lifespan(app: FastAPI):
     engine = create_engine(postgresql_url, echo=True)
     create_db_and_tables(engine)
+    seed_demo_accounts(engine)
     yield {"engine": engine}
     engine.dispose()
 app = FastAPI(lifespan=lifespan)
