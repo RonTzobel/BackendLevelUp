@@ -57,45 +57,61 @@ async def get_all_games():
 
 @router.get("/trending", response_model=list[GameResponse], status_code=status.HTTP_200_OK)
 async def get_trending_games():
-    """Fetch trending games (sorted by deal rating)."""
+    """Fetch trending games sorted by deal rating."""
     try:
-        deals = await fetch_cheapshark_deals(sort_by="Deal Rating", page_size=10)
-        # Process all games concurrently to avoid timeout issues
+        # "DealRating" is the correct CheapShark sortBy value (no space).
+        deals = await fetch_cheapshark_deals(sort_by="DealRating", page_size=10)
+        if not deals:
+            logger.warning("CheapShark returned no deals for trending — returning empty list")
+            return []
 
         game_tasks = [
             transform_deal_to_game_response(deal, is_trending=True, fetch_rawg=True)
             for deal in deals
         ]
-        games = await asyncio.gather(*game_tasks, return_exceptions=True)
-        # Filter out any exceptions and convert to list
+        results = await asyncio.gather(*game_tasks, return_exceptions=True)
         valid_games = []
-        for game in games:
-            if isinstance(game, Exception):
-                logger.warning(f"Error processing game: {game}")
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning("Error processing trending game: %s", result)
                 continue
-            valid_games.append(game)
+            valid_games.append(result)
         return valid_games
     except Exception as e:
-        logger.error(f"Error fetching trending games: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch trending games: {str(e)}")
+        logger.error("Unexpected error in /games/trending: %s", e)
+        return []
 
 
 @router.get("/deal-of-the-day", response_model=GameResponse, status_code=status.HTTP_200_OK)
 async def get_deal_of_the_day():
-    """Fetch the deal of the day (highest discount)."""
+    """Fetch the deal of the day (highest discount from the top deals batch)."""
     try:
-        deals = await fetch_cheapshark_deals(sort_by="Savings", page_size=1)
+        # Fetch a batch and pick the highest-savings deal locally rather than
+        # relying on CheapShark's sortBy=Savings (which has been returning 400).
+        deals = await fetch_cheapshark_deals(page_size=20)
         if not deals:
-            raise HTTPException(status_code=404, detail="No deals found")
-        
-        deal = deals[0]
-        game = await transform_deal_to_game_response(deal, is_deal_of_day=True, fetch_rawg=True)
+            raise HTTPException(
+                status_code=503,
+                detail="Deal of the Day temporarily unavailable — upstream API unreachable",
+            )
+
+        def _savings(deal: dict) -> float:
+            try:
+                return float(deal.get("savings") or 0)
+            except (ValueError, TypeError):
+                return 0.0
+
+        best_deal = max(deals, key=_savings)
+        game = await transform_deal_to_game_response(best_deal, is_deal_of_day=True, fetch_rawg=True)
         return game
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching deal of the day: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch deal of the day: {str(e)}")
+        logger.error("Unexpected error in /games/deal-of-the-day: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="Deal of the Day temporarily unavailable",
+        )
 
 
 @router.get("/search", response_model=list[GameResponse], status_code=status.HTTP_200_OK)

@@ -42,25 +42,45 @@ RAWG_API_KEY = settings.RAWG_API_KEY
 # ============== EXTRACT FUNCTIONS ==============
 
 async def fetch_cheapshark_deals(sort_by: Optional[str] = None, page_size: int = 60) -> list[dict]:
-    """Fetch deals from CheapShark API."""
-    async with httpx.AsyncClient() as client:
-        url = "https://www.cheapshark.com/api/1.0/deals"
-        params = {"pageSize": page_size}
-        if sort_by:
-            params["sortBy"] = sort_by
-        response = await client.get(url, params=params, timeout=5.0)
-        response.raise_for_status()
-        return response.json()
+    """Fetch deals from CheapShark API. Returns [] on any failure."""
+    params: dict = {"pageSize": page_size}
+    if sort_by:
+        params["sortBy"] = sort_by
+    try:
+        async with httpx.AsyncClient() as client:
+            url = "https://www.cheapshark.com/api/1.0/deals"
+            response = await client.get(url, params=params, timeout=10.0)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "CheapShark /deals returned HTTP %s for params %s — %s",
+            e.response.status_code, params, e.response.text[:200],
+        )
+        return []
+    except (httpx.RequestError, httpx.TimeoutException) as e:
+        logger.error("CheapShark /deals request failed (%s): %s", type(e).__name__, e)
+        return []
 
 
 async def fetch_cheapshark_games_search(query: str) -> list[dict]:
-    """Search games from CheapShark API."""
-    async with httpx.AsyncClient() as client:
-        url = "https://www.cheapshark.com/api/1.0/games"
-        params = {"title": query}
-        response = await client.get(url, params=params, timeout=10.0)
-        response.raise_for_status()
-        return response.json()
+    """Search games from CheapShark API. Returns [] on any failure."""
+    params = {"title": query}
+    try:
+        async with httpx.AsyncClient() as client:
+            url = "https://www.cheapshark.com/api/1.0/games"
+            response = await client.get(url, params=params, timeout=10.0)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "CheapShark /games search returned HTTP %s for query=%r — %s",
+            e.response.status_code, query, e.response.text[:200],
+        )
+        return []
+    except (httpx.RequestError, httpx.TimeoutException) as e:
+        logger.error("CheapShark /games search request failed (%s): %s", type(e).__name__, e)
+        return []
 
 
 async def fetch_cheapshark_game_lookup(game_id: str) -> Optional[dict]:
