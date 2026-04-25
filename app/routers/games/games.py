@@ -5,6 +5,7 @@ import httpx
 from app.dependencies import get_current_user
 from app.models.games import GameResponse
 from app.logic.games import (
+    CHEAPSHARK_HEADERS,
     fetch_cheapshark_deals,
     fetch_cheapshark_games_search,
     fetch_cheapshark_game_lookup,
@@ -160,7 +161,7 @@ async def get_game_by_id(game_id: str):
                 url = "https://www.cheapshark.com/api/1.0/games"
                 params = {"id": cheapshark_game_id}
                 try:
-                    response = await client.get(url, params=params, timeout=5.0)
+                    response = await client.get(url, params=params, timeout=5.0, headers=CHEAPSHARK_HEADERS)
                     response.raise_for_status()
                     lookup_data = response.json()
                     

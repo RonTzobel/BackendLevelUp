@@ -4,6 +4,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+CHEAPSHARK_HEADERS = {
+    "User-Agent": "LevelUp/1.0 (contact: rontzobel@example.com)"
+}
+
 # Cache for store names (store_id -> store_name)
 _store_cache: dict[str, str] = {}
 _store_cache_fetched: bool = False
@@ -25,7 +29,7 @@ async def fetch_cheapshark_stores(force_refresh: bool = False) -> dict[str, str]
     try:
         async with httpx.AsyncClient() as client:
             url = "https://www.cheapshark.com/api/1.0/stores"
-            response = await client.get(url, timeout=10.0)
+            response = await client.get(url, timeout=10.0, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             stores_data = response.json()
             

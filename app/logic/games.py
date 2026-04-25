@@ -38,6 +38,10 @@ logger = logging.getLogger(__name__)
 
 RAWG_API_KEY = settings.RAWG_API_KEY
 
+CHEAPSHARK_HEADERS = {
+    "User-Agent": "LevelUp/1.0 (contact: rontzobel@example.com)"
+}
+
 
 # ============== EXTRACT FUNCTIONS ==============
 
@@ -49,7 +53,7 @@ async def fetch_cheapshark_deals(sort_by: Optional[str] = None, page_size: int =
     try:
         async with httpx.AsyncClient() as client:
             url = "https://www.cheapshark.com/api/1.0/deals"
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(url, params=params, timeout=10.0, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as e:
@@ -69,7 +73,7 @@ async def fetch_cheapshark_games_search(query: str) -> list[dict]:
     try:
         async with httpx.AsyncClient() as client:
             url = "https://www.cheapshark.com/api/1.0/games"
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(url, params=params, timeout=10.0, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as e:
@@ -89,7 +93,7 @@ async def fetch_cheapshark_game_lookup(game_id: str) -> Optional[dict]:
         async with httpx.AsyncClient() as client:
             url = "https://www.cheapshark.com/api/1.0/games"
             params = {"id": game_id}
-            response = await client.get(url, params=params, timeout=5.0)
+            response = await client.get(url, params=params, timeout=5.0, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             data = response.json()
             
@@ -199,7 +203,7 @@ async def fetch_price_comparison(game_id: str) -> list[dict]:
         async with httpx.AsyncClient() as client:
             url = "https://www.cheapshark.com/api/1.0/deals"
             params = {"pageSize": 200}
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(url, params=params, timeout=10.0, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             all_deals = response.json()
             

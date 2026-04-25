@@ -30,6 +30,9 @@ IGDB_LIMIT = 500
 # CheapShark API configuration
 CHEAPSHARK_BASE_URL = "https://www.cheapshark.com/api/1.0"
 CHEAPSHARK_TIMEOUT = 10.0
+CHEAPSHARK_HEADERS = {
+    "User-Agent": "LevelUp/1.0 (contact: rontzobel@example.com)"
+}
 RAWG_TIMEOUT = 5.0  # Shorter timeout for RAWG enrichment calls
 
 # Logger for IGDB operations
@@ -63,8 +66,8 @@ async def extract_from_cheapshark(search: Optional[str] = None, page_size: int =
             params = {"pageSize": page_size}
             if search:
                 params["title"] = search
-            
-            response = await client.get(url, params=params)
+
+            response = await client.get(url, params=params, headers=CHEAPSHARK_HEADERS)
             response.raise_for_status()
             return response.json()
     except httpx.TimeoutException:
